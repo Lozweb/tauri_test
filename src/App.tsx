@@ -1,53 +1,54 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import {useEffect, useState} from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export function App() {
+    const [greetMsg, setGreetMsg] = useState("");
+    const [name, setName] = useState("");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+    const [mem, setMem] = useState<number | null>(null);
 
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    async function getMemoryUsage() {
+        try {
+            const value = await invoke<number | null>("total_mem");
+            setMem(value);
+        } catch (e) {
+            console.error(e);
+        }
+    }
 
-        <p>test</p>
+    async function greet() {
+        // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+        setGreetMsg(await invoke("greet", {name}));
+    }
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+    useEffect(() => {
+        getMemoryUsage();
+        const interval = setInterval(getMemoryUsage, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+    return (
+        <main className="container">
+            <h1>Total RAM</h1>
+            <p>{<p>{mem !== null ? (mem / (1024 ** 3)).toFixed(2) + " Go" : ""}</p>}</p>
+
+            <form
+                className="row"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    greet();
+                }}
+            >
+                <input
+                    id="greet-input"
+                    onChange={(e) => setName(e.currentTarget.value)}
+                    placeholder="Enter a name..."
+                />
+                <button type="submit">Greet</button>
+            </form>
+            <p>{greetMsg}</p>
+        </main>
+    );
 }
 
-export default App;
